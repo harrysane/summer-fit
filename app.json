@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "暑假体态增肌教练",
+    "slug": "summer-fit-coach",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.local.summerfitcoach"
+    },
+    "android": {
+      "package": "com.local.summerfitcoach",
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f3ee"
+      }
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-image-picker"
+    ]
+  }
+}
