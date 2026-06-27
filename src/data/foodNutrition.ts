@@ -128,6 +128,18 @@ export const foodNutrition: FoodNutritionItem[] = [
     sourceFoodId: "171793",
     sourceFoodDescription: "Beef, ground, 90% lean meat / 10% fat, patty, cooked, pan-broiled"
   },
+  // 猪肉为通用近似值，实际营养会因部位、肥瘦、烹饪方式不同而变化。
+  {
+    id: "pork-tenderloin-cooked",
+    nameZh: "猪肉",
+    nameEn: "Pork, fresh, loin, tenderloin, separable lean and fat, cooked, roasted",
+    aliases: ["猪肉", "熟猪肉", "瘦猪肉", "猪里脊", "pork", "cooked pork", "pork tenderloin"],
+    per100g: { kcal: 147, proteinG: 26.04, carbsG: 0, fatG: 3.96 },
+    source: "USDA FoodData Central",
+    sourceDataset: "SR Legacy 04/2018",
+    sourceFoodId: "167905",
+    sourceFoodDescription: "Pork, fresh, loin, tenderloin, separable lean and fat, cooked, roasted"
+  },
   {
     id: "broccoli-cooked",
     nameZh: "西兰花",
