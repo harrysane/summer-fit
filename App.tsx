@@ -15,6 +15,7 @@ import { registerSedentaryReminderNotifications } from "./src/services/notificat
 type TabKey = "today" | "training" | "food" | "nutrition";
 
 const TRAINING_CHECK_INS_STORAGE_KEY = "summer-fit.trainingCheckIns";
+const WEEKLY_TRAINING_GOAL = 4;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("today");
@@ -41,6 +42,12 @@ export default function App() {
     () => trainingCheckIns.some((checkIn) => checkIn.date === todayDate),
     [todayDate, trainingCheckIns]
   );
+  const weeklyCheckInCount = useMemo(
+    () => countWeeklyCheckIns(trainingCheckIns, new Date()),
+    [trainingCheckIns]
+  );
+  const weeklyGoal = WEEKLY_TRAINING_GOAL;
+  const weeklyCompletionRate = Math.min(Math.round((weeklyCheckInCount / weeklyGoal) * 100), 100);
 
   const handleTodayCheckIn = () => {
     if (isTodayCheckedIn) {
@@ -65,6 +72,9 @@ export default function App() {
             <TodayScreen
               plan={todayPlan}
               isTodayCheckedIn={isTodayCheckedIn}
+              weeklyCheckInCount={weeklyCheckInCount}
+              weeklyGoal={weeklyGoal}
+              weeklyCompletionRate={weeklyCompletionRate}
               onLogSet={(log) => {
                 setTrainingLogs((current) => [log, ...current]);
                 Alert.alert("已记录", "这一组训练已经保存到本地记录。");
@@ -104,6 +114,44 @@ function formatLocalDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function countWeeklyCheckIns(checkIns: TrainingCheckIn[], currentDate: Date) {
+  const weekStart = getWeekStartDate(currentDate);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const uniqueDates = new Set<string>();
+  for (const checkIn of checkIns) {
+    const checkInDate = parseLocalDate(checkIn.date);
+    if (!checkInDate) {
+      continue;
+    }
+
+    if (checkInDate >= weekStart && checkInDate <= weekEnd) {
+      uniqueDates.add(checkIn.date);
+    }
+  }
+
+  return uniqueDates.size;
+}
+
+function getWeekStartDate(date: Date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = start.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + mondayOffset);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function parseLocalDate(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 function readTrainingCheckInsFromStorage(): TrainingCheckIn[] {

@@ -10,6 +10,9 @@ type Props = {
   plan: TrainingPlan;
   completedSetCount: number;
   isTodayCheckedIn: boolean;
+  weeklyCheckInCount: number;
+  weeklyGoal: number;
+  weeklyCompletionRate: number;
   onLogSet: (log: TrainingSetLog) => void;
   onCheckIn: () => void;
 };
@@ -18,6 +21,9 @@ export function TodayScreen({
   plan,
   completedSetCount,
   isTodayCheckedIn,
+  weeklyCheckInCount,
+  weeklyGoal,
+  weeklyCompletionRate,
   onLogSet,
   onCheckIn
 }: Props) {
@@ -48,6 +54,20 @@ export function TodayScreen({
         <View style={styles.painGuide}>
           <Text style={styles.painGuideText}>疼痛评分：0 完全不痛；1-3 轻微不适，可继续观察。</Text>
           <Text style={styles.painGuideText}>4-6 明显疼痛，应降低幅度或强度；7-10 强烈疼痛，应停止相关动作。</Text>
+        </View>
+        <View style={styles.weeklyStats}>
+          <View>
+            <Text style={styles.weeklyStatsLabel}>本周已训练</Text>
+            <Text style={styles.weeklyStatsValue}>{weeklyCheckInCount} 天</Text>
+          </View>
+          <View>
+            <Text style={styles.weeklyStatsLabel}>本周目标</Text>
+            <Text style={styles.weeklyStatsValue}>{weeklyGoal} 天</Text>
+          </View>
+          <View>
+            <Text style={styles.weeklyStatsLabel}>完成率</Text>
+            <Text style={styles.weeklyStatsValue}>{weeklyCompletionRate}%</Text>
+          </View>
         </View>
         <Text style={styles.checkInStatus}>
           {isTodayCheckedIn ? "打卡状态：今日已完成" : "打卡状态：今日未完成"}
@@ -144,6 +164,25 @@ const styles = StyleSheet.create({
     color: "#6a4b1d",
     fontSize: 12,
     lineHeight: 17
+  },
+  weeklyStats: {
+    backgroundColor: "#eef4ef",
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+    padding: 12
+  },
+  weeklyStatsLabel: {
+    color: "#5f6f66",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  weeklyStatsValue: {
+    color: "#243b35",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 4
   },
   checkInStatus: {
     color: "#243b35",
