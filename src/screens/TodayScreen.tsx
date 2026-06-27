@@ -15,6 +15,8 @@ type Props = {
   weeklyCompletionRate: number;
   onLogSet: (log: TrainingSetLog) => void;
   onCheckIn: () => void;
+  onEnableSedentaryReminders: () => void;
+  sedentaryReminderMessage: string;
 };
 
 export function TodayScreen({
@@ -25,7 +27,9 @@ export function TodayScreen({
   weeklyGoal,
   weeklyCompletionRate,
   onLogSet,
-  onCheckIn
+  onCheckIn,
+  onEnableSedentaryReminders,
+  sedentaryReminderMessage
 }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -72,6 +76,15 @@ export function TodayScreen({
         <Text style={styles.checkInStatus}>
           {isTodayCheckedIn ? "打卡状态：今日已完成" : "打卡状态：今日未完成"}
         </Text>
+        <View style={styles.reminderBox}>
+          <View style={styles.reminderTextGroup}>
+            <Text style={styles.reminderTitle}>久坐提醒</Text>
+            <Text style={styles.reminderText}>{sedentaryReminderMessage}</Text>
+          </View>
+          <Pressable onPress={onEnableSedentaryReminders} style={styles.reminderButton}>
+            <Text style={styles.reminderButtonText}>开启久坐提醒</Text>
+          </Pressable>
+        </View>
         <Pressable
           disabled={isTodayCheckedIn}
           onPress={onCheckIn}
@@ -188,6 +201,44 @@ const styles = StyleSheet.create({
     color: "#243b35",
     fontSize: 14,
     fontWeight: "800"
+  },
+  reminderBox: {
+    alignItems: "center",
+    backgroundColor: "#f4efe7",
+    borderColor: "#e3d7c8",
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    padding: 10
+  },
+  reminderTextGroup: {
+    flex: 1,
+    gap: 3
+  },
+  reminderTitle: {
+    color: "#243b35",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  reminderText: {
+    color: "#6d665d",
+    fontSize: 12,
+    lineHeight: 17
+  },
+  reminderButton: {
+    alignItems: "center",
+    backgroundColor: "#d4663f",
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 36,
+    paddingHorizontal: 12
+  },
+  reminderButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "900"
   },
   checkInButton: {
     alignItems: "center",

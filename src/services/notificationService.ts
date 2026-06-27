@@ -11,6 +11,12 @@ const WEEKDAY_REMINDER_TIMES = [
 const SEDENTARY_CHANNEL_NAME = "Sedentary repair";
 const SEDENTARY_TITLE = "3-minute posture reset";
 
+export type SedentaryReminderResult = {
+  ok: boolean;
+  scheduledCount: number;
+  message: string;
+};
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -19,13 +25,25 @@ Notifications.setNotificationHandler({
   })
 });
 
-export async function registerSedentaryReminderNotifications() {
+export async function registerSedentaryReminderNotifications(): Promise<SedentaryReminderResult> {
+  if (Platform.OS === "web") {
+    return {
+      ok: false,
+      scheduledCount: 0,
+      message: "Web 端通知支持有限，请在 Expo Go / 真机上验证"
+    };
+  }
+
   const permission = await Notifications.getPermissionsAsync();
   const finalPermission =
     permission.status === "granted" ? permission : await Notifications.requestPermissionsAsync();
 
   if (finalPermission.status !== "granted") {
-    return [];
+    return {
+      ok: false,
+      scheduledCount: 0,
+      message: "通知权限未开启，无法安排久坐提醒"
+    };
   }
 
   if (Platform.OS === "android") {
@@ -58,7 +76,11 @@ export async function registerSedentaryReminderNotifications() {
     }
   }
 
-  return identifiers;
+  return {
+    ok: identifiers.length > 0,
+    scheduledCount: identifiers.length,
+    message: `已开启久坐提醒：工作日 10:20 / 14:20 / 16:20，共 ${identifiers.length} 个提醒`
+  };
 }
 
 export async function cancelSedentaryReminderNotifications() {

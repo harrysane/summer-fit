@@ -22,13 +22,10 @@ export default function App() {
   const [trainingLogs, setTrainingLogs] = useState<TrainingSetLog[]>(trainingLogsSeed);
   const [foodRecords, setFoodRecords] = useState<FoodRecord[]>(foodRecordsSeed);
   const [trainingCheckIns, setTrainingCheckIns] = useState<TrainingCheckIn[]>([]);
+  const [sedentaryReminderMessage, setSedentaryReminderMessage] = useState(
+    "工作日 10:20 / 14:20 / 16:20 提醒 3 分钟修复"
+  );
   const todayPlan = useMemo(() => getTrainingPlanForDate(new Date()), []);
-
-  useEffect(() => {
-    registerSedentaryReminderNotifications().catch((error) => {
-      console.warn("Notification setup failed", error);
-    });
-  }, []);
 
   useEffect(() => {
     setTrainingCheckIns(readTrainingCheckInsFromStorage());
@@ -68,6 +65,19 @@ export default function App() {
     setTrainingLogs((current) => current.filter((log) => log.id !== id));
   };
 
+  const handleEnableSedentaryReminders = async () => {
+    try {
+      const result = await registerSedentaryReminderNotifications();
+      setSedentaryReminderMessage(result.ok ? "已开启久坐提醒" : result.message);
+      Alert.alert(result.ok ? "已开启久坐提醒" : "久坐提醒", result.message);
+    } catch (error) {
+      console.warn("Notification setup failed", error);
+      const message = "久坐提醒开启失败，请稍后重试";
+      setSedentaryReminderMessage(message);
+      Alert.alert("久坐提醒", message);
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
@@ -85,6 +95,8 @@ export default function App() {
                 Alert.alert("已记录", "这一组训练已经保存到本地记录。");
               }}
               onCheckIn={handleTodayCheckIn}
+              onEnableSedentaryReminders={handleEnableSedentaryReminders}
+              sedentaryReminderMessage={sedentaryReminderMessage}
               completedSetCount={todayTrainingLogs.length}
             />
           ) : null}
