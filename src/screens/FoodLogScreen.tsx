@@ -10,8 +10,20 @@ type Props = {
   onChangeRecords: (records: FoodRecord[]) => void;
 };
 
+type EditingFoodItem = {
+  recordId: string;
+  itemId: string;
+  name: string;
+  grams: string;
+  kcal: string;
+  proteinG: string;
+  carbsG: string;
+  fatG: string;
+};
+
 export function FoodLogScreen({ records, onChangeRecords }: Props) {
   const [loading, setLoading] = useState(false);
+  const [editingItem, setEditingItem] = useState<EditingFoodItem | null>(null);
 
   async function pickFoodPhoto() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -69,6 +81,56 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
     onChangeRecords(records.filter((record) => record.id !== recordId));
   }
 
+  function startEditingItem(recordId: string, item: FoodItem) {
+    setEditingItem({
+      recordId,
+      itemId: item.id,
+      name: item.name,
+      grams: String(item.grams),
+      kcal: String(item.estimate.kcal),
+      proteinG: String(item.estimate.proteinG),
+      carbsG: String(item.estimate.carbsG),
+      fatG: String(item.estimate.fatG)
+    });
+  }
+
+  function updateEditingItem(field: keyof Omit<EditingFoodItem, "recordId" | "itemId">, value: string) {
+    setEditingItem((current) => (current ? { ...current, [field]: value } : current));
+  }
+
+  function saveEditingItem() {
+    if (!editingItem) {
+      return;
+    }
+
+    onChangeRecords(
+      records.map((record) =>
+        record.id === editingItem.recordId
+          ? {
+              ...record,
+              userEdited: true,
+              items: record.items.map((item) =>
+                item.id === editingItem.itemId
+                  ? {
+                      ...item,
+                      name: editingItem.name.trim() || item.name,
+                      grams: toNumber(editingItem.grams),
+                      estimate: {
+                        kcal: Math.round(toNumber(editingItem.kcal)),
+                        proteinG: toNumber(editingItem.proteinG),
+                        carbsG: toNumber(editingItem.carbsG),
+                        fatG: toNumber(editingItem.fatG)
+                      }
+                    }
+                  : item
+              )
+            }
+          : record
+      )
+    );
+    setEditingItem(null);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View>
@@ -88,20 +150,74 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
           </View>
           {record.imageUri ? <Image source={{ uri: record.imageUri }} style={styles.image} /> : null}
           {record.items.map((item) => (
-            <View key={item.id} style={styles.foodRow}>
-              <View style={styles.foodInfo}>
-                <Text style={styles.foodName}>{item.name}</Text>
-                <Text style={styles.macro}>
-                  {item.estimate.kcal} kcal · P {item.estimate.proteinG}g · C {item.estimate.carbsG}g · F {item.estimate.fatG}g
-                </Text>
+            <View key={item.id} style={styles.foodItemBlock}>
+              <View style={styles.foodRow}>
+                <View style={styles.foodInfo}>
+                  <Text style={styles.foodName}>{item.name}</Text>
+                  <Text style={styles.macro}>
+                    {item.estimate.kcal} kcal · P {item.estimate.proteinG}g · C {item.estimate.carbsG}g · F {item.estimate.fatG}g
+                  </Text>
+                </View>
+                <TextInput
+                  keyboardType="numeric"
+                  value={String(item.grams)}
+                  onChangeText={(value) => updateItem(record.id, item, value)}
+                  style={styles.gramsInput}
+                />
+                <Text style={styles.gramUnit}>g</Text>
+                <Pressable style={styles.editButton} onPress={() => startEditingItem(record.id, item)}>
+                  <Text style={styles.editButtonText}>编辑</Text>
+                </Pressable>
               </View>
-              <TextInput
-                keyboardType="numeric"
-                value={String(item.grams)}
-                onChangeText={(value) => updateItem(record.id, item, value)}
-                style={styles.gramsInput}
-              />
-              <Text style={styles.gramUnit}>g</Text>
+              {editingItem?.recordId === record.id && editingItem.itemId === item.id ? (
+                <View style={styles.editBox}>
+                  <View style={styles.editGrid}>
+                    <LabeledInput
+                      label="食物名称"
+                      value={editingItem.name}
+                      onChangeText={(value) => updateEditingItem("name", value)}
+                    />
+                    <LabeledInput
+                      label="克数"
+                      value={editingItem.grams}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateEditingItem("grams", value)}
+                    />
+                    <LabeledInput
+                      label="热量 kcal"
+                      value={editingItem.kcal}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateEditingItem("kcal", value)}
+                    />
+                    <LabeledInput
+                      label="蛋白质 g"
+                      value={editingItem.proteinG}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateEditingItem("proteinG", value)}
+                    />
+                    <LabeledInput
+                      label="碳水 g"
+                      value={editingItem.carbsG}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateEditingItem("carbsG", value)}
+                    />
+                    <LabeledInput
+                      label="脂肪 g"
+                      value={editingItem.fatG}
+                      keyboardType="numeric"
+                      onChangeText={(value) => updateEditingItem("fatG", value)}
+                    />
+                  </View>
+                  <View style={styles.editActions}>
+                    <Pressable style={styles.saveEditButton} onPress={saveEditingItem}>
+                      <Text style={styles.saveEditButtonText}>保存</Text>
+                    </Pressable>
+                    <Pressable style={styles.cancelEditButton} onPress={() => setEditingItem(null)}>
+                      <Text style={styles.cancelEditButtonText}>取消</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
             </View>
           ))}
           <Pressable style={styles.deleteButton} onPress={() => deleteRecord(record.id)}>
@@ -121,6 +237,34 @@ function mealTypeLabel(mealType: FoodRecord["mealType"]) {
     snack: "加餐"
   };
   return labels[mealType];
+}
+
+function toNumber(value: string) {
+  return Number(value) || 0;
+}
+
+function LabeledInput({
+  label,
+  value,
+  keyboardType,
+  onChangeText
+}: {
+  label: string;
+  value: string;
+  keyboardType?: "default" | "numeric";
+  onChangeText: (value: string) => void;
+}) {
+  return (
+    <View style={styles.editField}>
+      <Text style={styles.editLabel}>{label}</Text>
+      <TextInput
+        keyboardType={keyboardType}
+        value={value}
+        onChangeText={onChangeText}
+        style={styles.editInput}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -183,6 +327,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 10
   },
+  foodItemBlock: {
+    gap: 10
+  },
   foodInfo: {
     flex: 1
   },
@@ -209,6 +356,79 @@ const styles = StyleSheet.create({
   gramUnit: {
     color: "#6d665d",
     fontWeight: "700"
+  },
+  editButton: {
+    alignItems: "center",
+    borderColor: "#d7cdc0",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: "center",
+    paddingHorizontal: 10
+  },
+  editButtonText: {
+    color: "#243b35",
+    fontWeight: "800"
+  },
+  editBox: {
+    backgroundColor: "#faf8f4",
+    borderRadius: 8,
+    gap: 10,
+    padding: 12
+  },
+  editGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  editField: {
+    flexBasis: "48%",
+    flexGrow: 1,
+    gap: 4
+  },
+  editLabel: {
+    color: "#6d665d",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  editInput: {
+    backgroundColor: "#fff",
+    borderColor: "#ded4c6",
+    borderRadius: 8,
+    borderWidth: 1,
+    color: "#26231f",
+    fontSize: 15,
+    minHeight: 40,
+    paddingHorizontal: 8
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: 8
+  },
+  saveEditButton: {
+    alignItems: "center",
+    backgroundColor: "#243b35",
+    borderRadius: 8,
+    flex: 1,
+    minHeight: 40,
+    justifyContent: "center"
+  },
+  saveEditButtonText: {
+    color: "#fff",
+    fontWeight: "800"
+  },
+  cancelEditButton: {
+    alignItems: "center",
+    borderColor: "#d7cdc0",
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 40,
+    justifyContent: "center"
+  },
+  cancelEditButtonText: {
+    color: "#514b43",
+    fontWeight: "800"
   },
   deleteButton: {
     alignItems: "center",
