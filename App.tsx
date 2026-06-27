@@ -8,7 +8,7 @@ import { NutritionScreen } from "./src/screens/NutritionScreen";
 import { TodayScreen } from "./src/screens/TodayScreen";
 import { TrainingLogScreen } from "./src/screens/TrainingLogScreen";
 import { foodRecordsSeed, trainingLogsSeed } from "./src/data/sampleLogs";
-import { getTrainingPlanForDate } from "./src/data/trainingPlans";
+import { getTrainingPlanForDate, weeklyTrainingPlans } from "./src/data/trainingPlans";
 import { FoodRecord, TrainingCheckIn, TrainingSetLog } from "./src/models/types";
 import { registerSedentaryReminderNotifications } from "./src/services/notificationService";
 
@@ -26,15 +26,18 @@ export default function App() {
     "工作日 10:20 / 14:20 / 16:20 提醒 3 分钟修复"
   );
   const [isEnablingSedentaryReminders, setIsEnablingSedentaryReminders] = useState(false);
+  const actualWeekday = useMemo(() => new Date().getDay(), []);
+  const [selectedWeekday, setSelectedWeekday] = useState(actualWeekday);
   const todayPlan = useMemo(() => getTrainingPlanForDate(new Date()), []);
+  const selectedPlan = weeklyTrainingPlans[selectedWeekday] ?? todayPlan;
 
   useEffect(() => {
     setTrainingCheckIns(readTrainingCheckInsFromStorage());
   }, []);
 
   const todayTrainingLogs = useMemo(
-    () => trainingLogs.filter((log) => log.planId === todayPlan.id),
-    [trainingLogs]
+    () => trainingLogs.filter((log) => log.planId === selectedPlan.id),
+    [selectedPlan.id, trainingLogs]
   );
   const todayDate = useMemo(() => formatLocalDate(new Date()), []);
   const isTodayCheckedIn = useMemo(
@@ -91,7 +94,11 @@ export default function App() {
         <View style={styles.content}>
           {activeTab === "today" ? (
             <TodayScreen
-              plan={todayPlan}
+              plan={selectedPlan}
+              selectedWeekday={selectedWeekday}
+              todayWeekday={actualWeekday}
+              availablePlans={weeklyTrainingPlans}
+              onSelectWeekday={setSelectedWeekday}
               isTodayCheckedIn={isTodayCheckedIn}
               weeklyCheckInCount={weeklyCheckInCount}
               weeklyGoal={weeklyGoal}

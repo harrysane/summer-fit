@@ -8,6 +8,10 @@ import { TrainingPlan, TrainingSetLog } from "../models/types";
 
 type Props = {
   plan: TrainingPlan;
+  selectedWeekday: number;
+  todayWeekday: number;
+  availablePlans: Record<number, TrainingPlan>;
+  onSelectWeekday: (weekday: number) => void;
   completedSetCount: number;
   isTodayCheckedIn: boolean;
   weeklyCheckInCount: number;
@@ -20,8 +24,22 @@ type Props = {
   sedentaryReminderMessage: string;
 };
 
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: "周一" },
+  { value: 2, label: "周二" },
+  { value: 3, label: "周三" },
+  { value: 4, label: "周四" },
+  { value: 5, label: "周五" },
+  { value: 6, label: "周六" },
+  { value: 0, label: "周日" }
+];
+
 export function TodayScreen({
   plan,
+  selectedWeekday,
+  todayWeekday,
+  availablePlans,
+  onSelectWeekday,
   completedSetCount,
   isTodayCheckedIn,
   weeklyCheckInCount,
@@ -33,6 +51,8 @@ export function TodayScreen({
   isEnablingSedentaryReminders,
   sedentaryReminderMessage
 }: Props) {
+  const isViewingToday = selectedWeekday === todayWeekday;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View>
@@ -43,8 +63,47 @@ export function TodayScreen({
         </Text>
       </View>
 
+      <View style={styles.weekdaySelector}>
+        {WEEKDAY_OPTIONS.map((option) => {
+          const isSelected = selectedWeekday === option.value;
+          const isToday = todayWeekday === option.value;
+          const isAvailable = Boolean(availablePlans[option.value]);
+
+          return (
+            <Pressable
+              key={option.value}
+              disabled={!isAvailable}
+              onPress={() => onSelectWeekday(option.value)}
+              style={[
+                styles.weekdayButton,
+                isSelected ? styles.weekdayButtonSelected : null,
+                !isAvailable ? styles.weekdayButtonDisabled : null
+              ]}
+            >
+              <Text
+                style={[
+                  styles.weekdayButtonText,
+                  isSelected ? styles.weekdayButtonTextSelected : null
+                ]}
+              >
+                {option.label}
+              </Text>
+              {isToday ? <Text style={styles.weekdayTodayText}>今天</Text> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {!isViewingToday ? (
+        <SectionCard style={styles.viewingNotice}>
+          <Text style={styles.viewingNoticeText}>
+            当前正在查看{weekdayName(selectedWeekday)}计划，打卡仍记录为今天。
+          </Text>
+        </SectionCard>
+      ) : null}
+
       <SectionCard>
-        <CountdownTimer blocks={plan.blocks} />
+        <CountdownTimer key={plan.id} blocks={plan.blocks} />
       </SectionCard>
 
       <SectionCard style={styles.summaryCard}>
@@ -126,6 +185,10 @@ export function TodayScreen({
   );
 }
 
+function weekdayName(weekday: number) {
+  return WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? "所选日期";
+}
+
 const styles = StyleSheet.create({
   container: {
     gap: 16,
@@ -147,6 +210,55 @@ const styles = StyleSheet.create({
     color: "#6d665d",
     fontSize: 14,
     marginTop: 6
+  },
+  weekdaySelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  weekdayButton: {
+    alignItems: "center",
+    backgroundColor: "#eee5da",
+    borderColor: "#e1d5c6",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 44,
+    minWidth: 58,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6
+  },
+  weekdayButtonSelected: {
+    backgroundColor: "#243b35",
+    borderColor: "#243b35"
+  },
+  weekdayButtonDisabled: {
+    opacity: 0.45
+  },
+  weekdayButtonText: {
+    color: "#5f584f",
+    fontSize: 13,
+    fontWeight: "900"
+  },
+  weekdayButtonTextSelected: {
+    color: "#fff"
+  },
+  weekdayTodayText: {
+    color: "#d4663f",
+    fontSize: 10,
+    fontWeight: "900",
+    marginTop: 2
+  },
+  viewingNotice: {
+    backgroundColor: "#fff7e8",
+    borderColor: "#eed8ae",
+    borderWidth: 1
+  },
+  viewingNoticeText: {
+    color: "#6a4b1d",
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 18
   },
   summaryCard: {
     gap: 10
