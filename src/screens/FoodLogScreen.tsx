@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SectionCard } from "../components/SectionCard";
+import { calculateEstimateByGrams, findNutritionByName } from "../data/foodNutrition";
 import { FoodItem, FoodRecord } from "../models/types";
 import { recognizeFoodFromImage, scaleFoodItemByGrams } from "../services/foodAiService";
 
@@ -19,6 +20,7 @@ type EditingFoodItem = {
   proteinG: string;
   carbsG: string;
   fatG: string;
+  sourceText?: string;
 };
 
 export function FoodLogScreen({ records, onChangeRecords }: Props) {
@@ -82,6 +84,7 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
   }
 
   function startEditingItem(recordId: string, item: FoodItem) {
+    const nutrition = findNutritionByName(item.name);
     setEditingItem({
       recordId,
       itemId: item.id,
@@ -90,12 +93,24 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
       kcal: String(item.estimate.kcal),
       proteinG: String(item.estimate.proteinG),
       carbsG: String(item.estimate.carbsG),
-      fatG: String(item.estimate.fatG)
+      fatG: String(item.estimate.fatG),
+      sourceText: nutrition ? formatNutritionSource(nutrition) : undefined
     });
   }
 
   function updateEditingItem(field: keyof Omit<EditingFoodItem, "recordId" | "itemId">, value: string) {
-    setEditingItem((current) => (current ? { ...current, [field]: value } : current));
+    setEditingItem((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const next = { ...current, [field]: value };
+      if (field === "name" || field === "grams") {
+        return applyNutritionMatch(next);
+      }
+
+      return next;
+    });
   }
 
   function saveEditingItem() {
@@ -136,6 +151,9 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
       <View>
         <Text style={styles.title}>饮食记录</Text>
         <Text style={styles.subtitle}>上传食物照片后，先用本地 mock 识别结果占位，后续可替换为多模态 AI。</Text>
+        <Text style={styles.sourceNote}>
+          营养值为每 100g 估算，实际会因品牌、部位、烹饪方式不同而变化。
+        </Text>
       </View>
 
       <Pressable style={styles.uploadButton} onPress={pickFoodPhoto} disabled={loading}>
@@ -151,13 +169,13 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
           {record.imageUri ? <Image source={{ uri: record.imageUri }} style={styles.image} /> : null}
           {record.items.map((item) => (
             <View key={item.id} style={styles.foodItemBlock}>
-              <View style={styles.foodRow}>
-                <View style={styles.foodInfo}>
-                  <Text style={styles.foodName}>{item.name}</Text>
-                  <Text style={styles.macro}>
-                    {item.estimate.kcal} kcal · P {item.estimate.proteinG}g · C {item.estimate.carbsG}g · F {item.estimate.fatG}g
-                  </Text>
-                </View>
+              <View style={styles.foodInfo}>
+                <Text style={styles.foodName}>{item.name}</Text>
+                <Text style={styles.macro}>
+                  {item.estimate.kcal} 千卡 · P {item.estimate.proteinG} 克 · C {item.estimate.carbsG} 克 · F {item.estimate.fatG} 克
+                </Text>
+              </View>
+              <View style={styles.foodControls}>
                 <TextInput
                   keyboardType="numeric"
                   value={String(item.grams)}
@@ -208,6 +226,11 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
                       onChangeText={(value) => updateEditingItem("fatG", value)}
                     />
                   </View>
+                  {editingItem.sourceText ? (
+                    <Text style={styles.sourceText}>{editingItem.sourceText}</Text>
+                  ) : (
+                    <Text style={styles.sourceText}>本地营养库未匹配，可手动填写营养数据。</Text>
+                  )}
                   <View style={styles.editActions}>
                     <Pressable style={styles.saveEditButton} onPress={saveEditingItem}>
                       <Text style={styles.saveEditButtonText}>保存</Text>
@@ -241,6 +264,31 @@ function mealTypeLabel(mealType: FoodRecord["mealType"]) {
 
 function toNumber(value: string) {
   return Number(value) || 0;
+}
+
+function applyNutritionMatch(editingItem: EditingFoodItem): EditingFoodItem {
+  const nutrition = findNutritionByName(editingItem.name);
+  if (!nutrition) {
+    return { ...editingItem, sourceText: undefined };
+  }
+
+  const estimate = calculateEstimateByGrams(nutrition.per100g, toNumber(editingItem.grams));
+  return {
+    ...editingItem,
+    kcal: String(estimate.kcal),
+    proteinG: String(estimate.proteinG),
+    carbsG: String(estimate.carbsG),
+    fatG: String(estimate.fatG),
+    sourceText: formatNutritionSource(nutrition)
+  };
+}
+
+function formatNutritionSource(nutrition: ReturnType<typeof findNutritionByName>) {
+  if (!nutrition) {
+    return "";
+  }
+
+  return `数据来源：${nutrition.source} · ${nutrition.sourceDataset} · FDC ID: ${nutrition.sourceFoodId}`;
 }
 
 function LabeledInput({
@@ -284,6 +332,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 6
   },
+  sourceNote: {
+    color: "#7b756c",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6
+  },
   uploadButton: {
     alignItems: "center",
     backgroundColor: "#243b35",
@@ -319,19 +373,20 @@ const styles = StyleSheet.create({
     height: 180,
     width: "100%"
   },
-  foodRow: {
+  foodControls: {
     alignItems: "center",
-    borderTopColor: "#eee5da",
-    borderTopWidth: 1,
     flexDirection: "row",
     gap: 8,
-    paddingTop: 10
+    justifyContent: "flex-start"
   },
   foodItemBlock: {
+    borderTopColor: "#eee5da",
+    borderTopWidth: 1,
     gap: 10
   },
   foodInfo: {
-    flex: 1
+    gap: 4,
+    paddingTop: 10
   },
   foodName: {
     color: "#2d2923",
@@ -340,7 +395,7 @@ const styles = StyleSheet.create({
   macro: {
     color: "#625b52",
     fontSize: 12,
-    marginTop: 2
+    lineHeight: 18
   },
   gramsInput: {
     borderColor: "#ded4c6",
@@ -400,6 +455,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 40,
     paddingHorizontal: 8
+  },
+  sourceText: {
+    color: "#6d665d",
+    fontSize: 12,
+    lineHeight: 18
   },
   editActions: {
     flexDirection: "row",
