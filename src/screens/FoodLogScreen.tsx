@@ -23,9 +23,12 @@ type EditingFoodItem = {
   sourceText?: string;
 };
 
+type AddingFoodItem = Omit<EditingFoodItem, "itemId">;
+
 export function FoodLogScreen({ records, onChangeRecords }: Props) {
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<EditingFoodItem | null>(null);
+  const [addingItem, setAddingItem] = useState<AddingFoodItem | null>(null);
 
   async function pickFoodPhoto() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -146,6 +149,70 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
     setEditingItem(null);
   }
 
+  function startAddingItem(recordId: string) {
+    setAddingItem({
+      recordId,
+      name: "",
+      grams: "100",
+      kcal: "0",
+      proteinG: "0",
+      carbsG: "0",
+      fatG: "0"
+    });
+  }
+
+  function updateAddingItem(field: keyof Omit<AddingFoodItem, "recordId">, value: string) {
+    setAddingItem((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const next = { ...current, [field]: value };
+      if (field === "name" || field === "grams") {
+        return applyNutritionMatch(next);
+      }
+
+      return next;
+    });
+  }
+
+  function saveAddingItem() {
+    if (!addingItem) {
+      return;
+    }
+
+    const name = addingItem.name.trim();
+    if (!name) {
+      Alert.alert("请输入食物名称", "添加漏识别食物前，需要先填写食物名称。");
+      return;
+    }
+
+    const newItem: FoodItem = {
+      id: `manual-food-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      grams: toNumber(addingItem.grams),
+      estimate: {
+        kcal: Math.round(toNumber(addingItem.kcal)),
+        proteinG: toNumber(addingItem.proteinG),
+        carbsG: toNumber(addingItem.carbsG),
+        fatG: toNumber(addingItem.fatG)
+      }
+    };
+
+    onChangeRecords(
+      records.map((record) =>
+        record.id === addingItem.recordId
+          ? {
+              ...record,
+              userEdited: true,
+              items: [...record.items, newItem]
+            }
+          : record
+      )
+    );
+    setAddingItem(null);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View>
@@ -243,6 +310,64 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
               ) : null}
             </View>
           ))}
+          {addingItem?.recordId === record.id ? (
+            <View style={styles.editBox}>
+              <View style={styles.editGrid}>
+                <LabeledInput
+                  label="食物名称"
+                  value={addingItem.name}
+                  onChangeText={(value) => updateAddingItem("name", value)}
+                />
+                <LabeledInput
+                  label="克数"
+                  value={addingItem.grams}
+                  keyboardType="numeric"
+                  onChangeText={(value) => updateAddingItem("grams", value)}
+                />
+                <LabeledInput
+                  label="热量 kcal"
+                  value={addingItem.kcal}
+                  keyboardType="numeric"
+                  onChangeText={(value) => updateAddingItem("kcal", value)}
+                />
+                <LabeledInput
+                  label="蛋白质 g"
+                  value={addingItem.proteinG}
+                  keyboardType="numeric"
+                  onChangeText={(value) => updateAddingItem("proteinG", value)}
+                />
+                <LabeledInput
+                  label="碳水 g"
+                  value={addingItem.carbsG}
+                  keyboardType="numeric"
+                  onChangeText={(value) => updateAddingItem("carbsG", value)}
+                />
+                <LabeledInput
+                  label="脂肪 g"
+                  value={addingItem.fatG}
+                  keyboardType="numeric"
+                  onChangeText={(value) => updateAddingItem("fatG", value)}
+                />
+              </View>
+              {addingItem.sourceText ? (
+                <Text style={styles.sourceText}>{addingItem.sourceText}</Text>
+              ) : (
+                <Text style={styles.sourceText}>本地营养库未匹配，可手动填写营养数据。</Text>
+              )}
+              <View style={styles.editActions}>
+                <Pressable style={styles.saveEditButton} onPress={saveAddingItem}>
+                  <Text style={styles.saveEditButtonText}>保存</Text>
+                </Pressable>
+                <Pressable style={styles.cancelEditButton} onPress={() => setAddingItem(null)}>
+                  <Text style={styles.cancelEditButtonText}>取消</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable style={styles.addButton} onPress={() => startAddingItem(record.id)}>
+              <Text style={styles.addButtonText}>添加食物</Text>
+            </Pressable>
+          )}
           <Pressable style={styles.deleteButton} onPress={() => deleteRecord(record.id)}>
             <Text style={styles.deleteButtonText}>删除</Text>
           </Pressable>
@@ -266,7 +391,7 @@ function toNumber(value: string) {
   return Number(value) || 0;
 }
 
-function applyNutritionMatch(editingItem: EditingFoodItem): EditingFoodItem {
+function applyNutritionMatch<T extends EditingFoodItem | AddingFoodItem>(editingItem: T): T {
   const nutrition = findNutritionByName(editingItem.name);
   if (!nutrition) {
     return { ...editingItem, sourceText: undefined };
@@ -422,6 +547,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10
   },
   editButtonText: {
+    color: "#243b35",
+    fontWeight: "800"
+  },
+  addButton: {
+    alignItems: "center",
+    borderColor: "#b9cfc5",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 40,
+    justifyContent: "center"
+  },
+  addButtonText: {
     color: "#243b35",
     fontWeight: "800"
   },
