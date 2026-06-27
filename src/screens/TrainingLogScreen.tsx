@@ -1,13 +1,14 @@
 import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SectionCard } from "../components/SectionCard";
 import { TrainingSetLog } from "../models/types";
 
 type Props = {
   logs: TrainingSetLog[];
+  onDeleteLog: (id: string) => void;
 };
 
-export function TrainingLogScreen({ logs }: Props) {
+export function TrainingLogScreen({ logs, onDeleteLog }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>训练记录</Text>
@@ -30,6 +31,9 @@ export function TrainingLogScreen({ logs }: Props) {
             <Text style={styles.detail}>
               第 {item.setNumber} 组 · {item.reps} 次 · {item.bandKg === 0 ? "徒手" : `${item.bandKg}kg`} · RPE {item.rpe} · 肩痛 {item.shoulderPainScore}/10
             </Text>
+            <Pressable style={styles.deleteButton} onPress={() => onDeleteLog(item.id)}>
+              <Text style={styles.deleteButtonText}>删除</Text>
+            </Pressable>
           </SectionCard>
         )}
       />
@@ -72,6 +76,20 @@ const styles = StyleSheet.create({
   detail: {
     color: "#514b43",
     lineHeight: 20
+  },
+  deleteButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: "#d7cdc0",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  deleteButtonText: {
+    color: "#8a3f2a",
+    fontWeight: "800"
   },
   emptyTitle: {
     color: "#24211d",

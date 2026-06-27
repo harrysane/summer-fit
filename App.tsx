@@ -63,6 +63,10 @@ export default function App() {
     Alert.alert("今日已完成", "训练打卡已经保存。");
   };
 
+  const handleDeleteTrainingLog = (id: string) => {
+    setTrainingLogs((current) => current.filter((log) => log.id !== id));
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
@@ -84,7 +88,7 @@ export default function App() {
             />
           ) : null}
           {activeTab === "training" ? (
-            <TrainingLogScreen logs={trainingLogs} />
+            <TrainingLogScreen logs={trainingLogs} onDeleteLog={handleDeleteTrainingLog} />
           ) : null}
           {activeTab === "food" ? (
             <FoodLogScreen records={foodRecords} onChangeRecords={setFoodRecords} />
