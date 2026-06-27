@@ -86,6 +86,24 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
     onChangeRecords(records.filter((record) => record.id !== recordId));
   }
 
+  function deleteFoodItem(recordId: string, itemId: string) {
+    if (editingItem?.recordId === recordId && editingItem.itemId === itemId) {
+      setEditingItem(null);
+    }
+
+    onChangeRecords(
+      records.map((record) =>
+        record.id === recordId
+          ? {
+              ...record,
+              userEdited: true,
+              items: record.items.filter((item) => item.id !== itemId)
+            }
+          : record
+      )
+    );
+  }
+
   function startEditingItem(recordId: string, item: FoodItem) {
     const nutrition = findNutritionByName(item.name);
     setEditingItem({
@@ -234,6 +252,9 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
             <Text style={styles.confidence}>AI 置信度 {Math.round(record.aiConfidence * 100)}%</Text>
           </View>
           {record.imageUri ? <Image source={{ uri: record.imageUri }} style={styles.image} /> : null}
+          {record.items.length === 0 ? (
+            <Text style={styles.emptyItemsText}>这条记录暂无食物，可点击添加食物补充。</Text>
+          ) : null}
           {record.items.map((item) => (
             <View key={item.id} style={styles.foodItemBlock}>
               <View style={styles.foodInfo}>
@@ -252,6 +273,9 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
                 <Text style={styles.gramUnit}>g</Text>
                 <Pressable style={styles.editButton} onPress={() => startEditingItem(record.id, item)}>
                   <Text style={styles.editButtonText}>编辑</Text>
+                </Pressable>
+                <Pressable style={styles.itemDeleteButton} onPress={() => deleteFoodItem(record.id, item.id)}>
+                  <Text style={styles.itemDeleteButtonText}>删除</Text>
                 </Pressable>
               </View>
               {editingItem?.recordId === record.id && editingItem.itemId === item.id ? (
@@ -522,6 +546,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18
   },
+  emptyItemsText: {
+    color: "#7b756c",
+    fontSize: 13,
+    lineHeight: 19
+  },
   gramsInput: {
     borderColor: "#ded4c6",
     borderRadius: 8,
@@ -548,6 +577,19 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     color: "#243b35",
+    fontWeight: "800"
+  },
+  itemDeleteButton: {
+    alignItems: "center",
+    borderColor: "#d7cdc0",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: "center",
+    paddingHorizontal: 10
+  },
+  itemDeleteButtonText: {
+    color: "#8a3f2a",
     fontWeight: "800"
   },
   addButton: {
