@@ -25,6 +25,7 @@ export default function App() {
   const [sedentaryReminderMessage, setSedentaryReminderMessage] = useState(
     "工作日 10:20 / 14:20 / 16:20 提醒 3 分钟修复"
   );
+  const [isEnablingSedentaryReminders, setIsEnablingSedentaryReminders] = useState(false);
   const todayPlan = useMemo(() => getTrainingPlanForDate(new Date()), []);
 
   useEffect(() => {
@@ -66,15 +67,20 @@ export default function App() {
   };
 
   const handleEnableSedentaryReminders = async () => {
+    setIsEnablingSedentaryReminders(true);
+    setSedentaryReminderMessage("正在开启久坐提醒...");
+
     try {
       const result = await registerSedentaryReminderNotifications();
       setSedentaryReminderMessage(result.ok ? "已开启久坐提醒" : result.message);
       Alert.alert(result.ok ? "已开启久坐提醒" : "久坐提醒", result.message);
     } catch (error) {
       console.warn("Notification setup failed", error);
-      const message = "久坐提醒开启失败，请稍后重试";
+      const message = "久坐提醒开启失败，请稍后重试。";
       setSedentaryReminderMessage(message);
       Alert.alert("久坐提醒", message);
+    } finally {
+      setIsEnablingSedentaryReminders(false);
     }
   };
 
@@ -96,6 +102,7 @@ export default function App() {
               }}
               onCheckIn={handleTodayCheckIn}
               onEnableSedentaryReminders={handleEnableSedentaryReminders}
+              isEnablingSedentaryReminders={isEnablingSedentaryReminders}
               sedentaryReminderMessage={sedentaryReminderMessage}
               completedSetCount={todayTrainingLogs.length}
             />

@@ -16,6 +16,7 @@ type Props = {
   onLogSet: (log: TrainingSetLog) => void;
   onCheckIn: () => void;
   onEnableSedentaryReminders: () => void;
+  isEnablingSedentaryReminders: boolean;
   sedentaryReminderMessage: string;
 };
 
@@ -29,6 +30,7 @@ export function TodayScreen({
   onLogSet,
   onCheckIn,
   onEnableSedentaryReminders,
+  isEnablingSedentaryReminders,
   sedentaryReminderMessage
 }: Props) {
   return (
@@ -81,8 +83,17 @@ export function TodayScreen({
             <Text style={styles.reminderTitle}>久坐提醒</Text>
             <Text style={styles.reminderText}>{sedentaryReminderMessage}</Text>
           </View>
-          <Pressable onPress={onEnableSedentaryReminders} style={styles.reminderButton}>
-            <Text style={styles.reminderButtonText}>开启久坐提醒</Text>
+          <Pressable
+            disabled={isEnablingSedentaryReminders}
+            onPress={onEnableSedentaryReminders}
+            style={[
+              styles.reminderButton,
+              isEnablingSedentaryReminders ? styles.reminderButtonDisabled : null
+            ]}
+          >
+            <Text style={styles.reminderButtonText}>
+              {isEnablingSedentaryReminders ? "开启中..." : "开启久坐提醒"}
+            </Text>
           </Pressable>
         </View>
         <Pressable
@@ -234,6 +245,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 36,
     paddingHorizontal: 12
+  },
+  reminderButtonDisabled: {
+    backgroundColor: "#c9b9a7"
   },
   reminderButtonText: {
     color: "#fff",

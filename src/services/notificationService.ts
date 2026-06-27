@@ -30,7 +30,7 @@ export async function registerSedentaryReminderNotifications(): Promise<Sedentar
     return {
       ok: false,
       scheduledCount: 0,
-      message: "Web 端通知支持有限，请在 Expo Go / 真机上验证"
+      message: "Web 端通知支持有限，请在 Expo Go / 真机上验证。"
     };
   }
 
