@@ -65,6 +65,10 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
     );
   }
 
+  function deleteRecord(recordId: string) {
+    onChangeRecords(records.filter((record) => record.id !== recordId));
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View>
@@ -100,6 +104,9 @@ export function FoodLogScreen({ records, onChangeRecords }: Props) {
               <Text style={styles.gramUnit}>g</Text>
             </View>
           ))}
+          <Pressable style={styles.deleteButton} onPress={() => deleteRecord(record.id)}>
+            <Text style={styles.deleteButtonText}>删除</Text>
+          </Pressable>
         </SectionCard>
       ))}
     </ScrollView>
@@ -202,5 +209,19 @@ const styles = StyleSheet.create({
   gramUnit: {
     color: "#6d665d",
     fontWeight: "700"
+  },
+  deleteButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: "#d7cdc0",
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  deleteButtonText: {
+    color: "#8a3f2a",
+    fontWeight: "800"
   }
 });
