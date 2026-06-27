@@ -8,7 +8,7 @@ import { NutritionScreen } from "./src/screens/NutritionScreen";
 import { TodayScreen } from "./src/screens/TodayScreen";
 import { TrainingLogScreen } from "./src/screens/TrainingLogScreen";
 import { foodRecordsSeed, trainingLogsSeed } from "./src/data/sampleLogs";
-import { todayPlan } from "./src/data/trainingPlans";
+import { getTrainingPlanForDate } from "./src/data/trainingPlans";
 import { FoodRecord, TrainingCheckIn, TrainingSetLog } from "./src/models/types";
 import { registerSedentaryReminderNotifications } from "./src/services/notificationService";
 
@@ -22,6 +22,7 @@ export default function App() {
   const [trainingLogs, setTrainingLogs] = useState<TrainingSetLog[]>(trainingLogsSeed);
   const [foodRecords, setFoodRecords] = useState<FoodRecord[]>(foodRecordsSeed);
   const [trainingCheckIns, setTrainingCheckIns] = useState<TrainingCheckIn[]>([]);
+  const todayPlan = useMemo(() => getTrainingPlanForDate(new Date()), []);
 
   useEffect(() => {
     registerSedentaryReminderNotifications().catch((error) => {
