@@ -59,12 +59,19 @@ export function TodayScreen({
 }: Props) {
   const isViewingToday = selectedWeekday === todayWeekday;
   const [adaptationInsight, setAdaptationInsight] = useState<TrainingAdaptationResult | null>(null);
+  const [selectedAdaptationFeedback, setSelectedAdaptationFeedback] = useState<string | null>(null);
 
   const handleCheckInPress = () => {
     onCheckIn();
 
     const insight = analyzeTrainingAdaptation({ logs: trainingLogs, planId: plan.id });
+    setSelectedAdaptationFeedback(null);
     setAdaptationInsight(insight.shouldPrompt ? insight : null);
+  };
+
+  const closeAdaptationInsight = () => {
+    setAdaptationInsight(null);
+    setSelectedAdaptationFeedback(null);
   };
 
   return (
@@ -187,7 +194,35 @@ export function TodayScreen({
           {adaptationInsight.suggestedAction ? (
             <Text style={styles.adaptationAction}>{adaptationInsight.suggestedAction}</Text>
           ) : null}
-          <Pressable style={styles.adaptationButton} onPress={() => setAdaptationInsight(null)}>
+          <View style={styles.adaptationOptionRow}>
+            {getAdaptationFeedbackOptions(adaptationInsight.reason).map((option) => (
+              <Pressable
+                key={option.label}
+                onPress={() => setSelectedAdaptationFeedback(option.confirmation)}
+                style={[
+                  styles.adaptationOptionButton,
+                  selectedAdaptationFeedback === option.confirmation
+                    ? styles.adaptationOptionButtonSelected
+                    : null
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.adaptationOptionText,
+                    selectedAdaptationFeedback === option.confirmation
+                      ? styles.adaptationOptionTextSelected
+                      : null
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {selectedAdaptationFeedback ? (
+            <Text style={styles.adaptationConfirmation}>{selectedAdaptationFeedback}</Text>
+          ) : null}
+          <Pressable style={styles.adaptationButton} onPress={closeAdaptationInsight}>
             <Text style={styles.adaptationButtonText}>知道了</Text>
           </Pressable>
         </SectionCard>
@@ -227,6 +262,50 @@ function reasonLabel(reason: TrainingAdaptationResult["reason"]) {
   };
 
   return labels[reason];
+}
+
+function getAdaptationFeedbackOptions(reason: TrainingAdaptationResult["reason"]) {
+  const options: Record<
+    TrainingAdaptationResult["reason"],
+    { label: string; confirmation: string }[]
+  > = {
+    "too-easy": [
+      {
+        label: "确实偏轻",
+        confirmation: "已记录：你认为当前计划偏轻，后续可以用于训练调整建议。"
+      },
+      { label: "刚好", confirmation: "已记录：当前计划强度基本合适。" },
+      { label: "暂不调整", confirmation: "已记录：本次暂不调整训练计划。" }
+    ],
+    "too-hard": [
+      {
+        label: "确实偏难",
+        confirmation: "已记录：你认为当前计划偏难，后续可以考虑降低训练量。"
+      },
+      { label: "只是今天状态差", confirmation: "已记录：本次可能受当天状态影响，暂不直接调整。" },
+      { label: "暂不调整", confirmation: "已记录：本次暂不调整训练计划。" }
+    ],
+    "discomfort-risk": [
+      {
+        label: "有明显不适",
+        confirmation: "已记录：你反馈了明显不适，后续建议优先降低相关动作刺激。"
+      },
+      { label: "轻微不适", confirmation: "已记录：你反馈了轻微不适，后续建议继续观察。" },
+      { label: "没有问题", confirmation: "已记录：你认为当前没有明显不适。" }
+    ],
+    "missing-feedback": [
+      { label: "补充反馈", confirmation: "已记录：你愿意补充主观反馈，后续判断会更准确。" },
+      { label: "下次再说", confirmation: "已记录：本次先跳过反馈，下次训练后再补充。" }
+    ],
+    "early-calibration": [
+      { label: "偏轻", confirmation: "已记录：校准期内你认为当前强度偏轻。" },
+      { label: "刚好", confirmation: "已记录：校准期内你认为当前强度基本合适。" },
+      { label: "偏难", confirmation: "已记录：校准期内你认为当前强度偏难。" }
+    ],
+    "no-prompt": []
+  };
+
+  return options[reason];
 }
 
 const styles = StyleSheet.create({
@@ -442,6 +521,39 @@ const styles = StyleSheet.create({
   adaptationAction: {
     color: "#5a4c32",
     fontSize: 13,
+    lineHeight: 19
+  },
+  adaptationOptionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  adaptationOptionButton: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderColor: "#c9d8cf",
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 36,
+    paddingHorizontal: 12
+  },
+  adaptationOptionButtonSelected: {
+    backgroundColor: "#243b35",
+    borderColor: "#243b35"
+  },
+  adaptationOptionText: {
+    color: "#31453d",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  adaptationOptionTextSelected: {
+    color: "#fff"
+  },
+  adaptationConfirmation: {
+    color: "#243b35",
+    fontSize: 13,
+    fontWeight: "800",
     lineHeight: 19
   },
   adaptationButton: {
