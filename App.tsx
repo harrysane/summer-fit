@@ -103,6 +103,7 @@ export default function App() {
               weeklyCheckInCount={weeklyCheckInCount}
               weeklyGoal={weeklyGoal}
               weeklyCompletionRate={weeklyCompletionRate}
+              trainingLogs={trainingLogs}
               onLogSet={(log) => {
                 setTrainingLogs((current) => [log, ...current]);
                 Alert.alert("已记录", "这一组训练已经保存到本地记录。");

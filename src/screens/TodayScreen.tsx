@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { CountdownTimer } from "../components/CountdownTimer";
 import { ExerciseCard } from "../components/ExerciseCard";
 import { SectionCard } from "../components/SectionCard";
 import { userProfile } from "../data/userProfile";
 import { TrainingPlan, TrainingSetLog } from "../models/types";
+import {
+  analyzeTrainingAdaptation,
+  TrainingAdaptationResult
+} from "../utils/trainingAdaptation";
 
 type Props = {
   plan: TrainingPlan;
@@ -17,6 +21,7 @@ type Props = {
   weeklyCheckInCount: number;
   weeklyGoal: number;
   weeklyCompletionRate: number;
+  trainingLogs: TrainingSetLog[];
   onLogSet: (log: TrainingSetLog) => void;
   onCheckIn: () => void;
   onEnableSedentaryReminders: () => void;
@@ -45,6 +50,7 @@ export function TodayScreen({
   weeklyCheckInCount,
   weeklyGoal,
   weeklyCompletionRate,
+  trainingLogs,
   onLogSet,
   onCheckIn,
   onEnableSedentaryReminders,
@@ -52,6 +58,14 @@ export function TodayScreen({
   sedentaryReminderMessage
 }: Props) {
   const isViewingToday = selectedWeekday === todayWeekday;
+  const [adaptationInsight, setAdaptationInsight] = useState<TrainingAdaptationResult | null>(null);
+
+  const handleCheckInPress = () => {
+    onCheckIn();
+
+    const insight = analyzeTrainingAdaptation({ logs: trainingLogs, planId: plan.id });
+    setAdaptationInsight(insight.shouldPrompt ? insight : null);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -157,7 +171,7 @@ export function TodayScreen({
         </View>
         <Pressable
           disabled={isTodayCheckedIn}
-          onPress={onCheckIn}
+          onPress={handleCheckInPress}
           style={[styles.checkInButton, isTodayCheckedIn ? styles.checkInButtonDisabled : null]}
         >
           <Text style={[styles.checkInButtonText, isTodayCheckedIn ? styles.checkInButtonTextDisabled : null]}>
@@ -165,6 +179,19 @@ export function TodayScreen({
           </Text>
         </Pressable>
       </SectionCard>
+
+      {adaptationInsight ? (
+        <SectionCard style={styles.adaptationCard}>
+          <Text style={styles.adaptationLabel}>{reasonLabel(adaptationInsight.reason)}</Text>
+          <Text style={styles.adaptationMessage}>{adaptationInsight.message}</Text>
+          {adaptationInsight.suggestedAction ? (
+            <Text style={styles.adaptationAction}>{adaptationInsight.suggestedAction}</Text>
+          ) : null}
+          <Pressable style={styles.adaptationButton} onPress={() => setAdaptationInsight(null)}>
+            <Text style={styles.adaptationButtonText}>知道了</Text>
+          </Pressable>
+        </SectionCard>
+      ) : null}
 
       {plan.blocks.map((block) => (
         <View key={block.id} style={styles.block}>
@@ -187,6 +214,19 @@ export function TodayScreen({
 
 function weekdayName(weekday: number) {
   return WEEKDAY_OPTIONS.find((option) => option.value === weekday)?.label ?? "所选日期";
+}
+
+function reasonLabel(reason: TrainingAdaptationResult["reason"]) {
+  const labels: Record<TrainingAdaptationResult["reason"], string> = {
+    "early-calibration": "训练适应校准",
+    "too-easy": "当前计划可能偏轻",
+    "too-hard": "当前计划可能偏难",
+    "discomfort-risk": "存在不适风险",
+    "missing-feedback": "缺少主观反馈",
+    "no-prompt": "无需额外提示"
+  };
+
+  return labels[reason];
 }
 
 const styles = StyleSheet.create({
@@ -382,6 +422,41 @@ const styles = StyleSheet.create({
   },
   checkInButtonTextDisabled: {
     color: "#6d665d"
+  },
+  adaptationCard: {
+    backgroundColor: "#eef4ef",
+    borderColor: "#c9d8cf",
+    borderWidth: 1,
+    gap: 10
+  },
+  adaptationLabel: {
+    color: "#243b35",
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  adaptationMessage: {
+    color: "#34443e",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  adaptationAction: {
+    color: "#5a4c32",
+    fontSize: 13,
+    lineHeight: 19
+  },
+  adaptationButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#243b35",
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 36,
+    paddingHorizontal: 14
+  },
+  adaptationButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "900"
   },
   block: {
     gap: 12
